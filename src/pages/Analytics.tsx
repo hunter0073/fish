@@ -14,8 +14,14 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@/hooks/useQuery';
-import { getAnalytics, type Severity } from '@/data/analytics';
+import { getAnalytics, type Severity, type Recommendation } from '@/data/analytics';
+
+function recommendationRoute(rec: Recommendation): string {
+  if (rec.title.includes('מנהל')) return '/project-managers';
+  return '/projects';
+}
 
 const budgetOverruns = 0;
 const notUpdated14Days = 2;
@@ -42,6 +48,7 @@ const severityLabel: Record<Severity, string> = {
 
 export default function Analytics() {
   const { data, loading } = useQuery(getAnalytics);
+  const navigate = useNavigate();
   const managerLoadData = data?.managerLoad ?? [];
   const recommendations = data?.recommendations ?? [];
 
@@ -131,7 +138,11 @@ export default function Analytics() {
                         </div>
                       </div>
                       {rec.actionLabel && (
-                        <button className="text-body-sm text-primary hover:underline flex-shrink-0 mt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => navigate(recommendationRoute(rec))}
+                          className="text-body-sm text-primary hover:underline flex-shrink-0 mt-0.5"
+                        >
                           {rec.actionLabel}
                         </button>
                       )}

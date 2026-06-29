@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as Tabs from '@radix-ui/react-tabs';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import {
@@ -111,6 +112,7 @@ const managerLoadData = [
 // ─── Dashboard Component ──────────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [alertsOpen, setAlertsOpen] = useState(true);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
 
@@ -123,7 +125,7 @@ export default function Dashboard() {
         title="לוח בקרה"
         subtitle="ניהול פרויקטים ומשימות"
         actions={
-          <Button variant="primary" size="sm">
+          <Button variant="primary" size="sm" onClick={() => navigate('/projects')}>
             <Plus className="w-4 h-4" />
             פרויקט חדש
           </Button>
@@ -198,7 +200,7 @@ export default function Dashboard() {
                 subtext="משימות שעברו את הדדליין"
                 icon={<Clock className="w-5 h-5" />}
                 colorScheme="danger"
-                onClick={() => {}}
+                onClick={() => navigate('/tasks')}
               />
               <StatCard
                 label="השבוע"
@@ -206,6 +208,7 @@ export default function Dashboard() {
                 subtext="משימות לשבוע הנוכחי"
                 icon={<Calendar className="w-5 h-5" />}
                 colorScheme="info"
+                onClick={() => navigate('/tasks')}
               />
               <StatCard
                 label="קבלנים"
@@ -213,6 +216,7 @@ export default function Dashboard() {
                 subtext="הזמנות פתוחות"
                 icon={<Users className="w-5 h-5" />}
                 colorScheme="neutral"
+                onClick={() => navigate('/contractors')}
               />
             </div>
 
@@ -220,11 +224,11 @@ export default function Dashboard() {
             <div className="flex flex-col gap-3">
               <h2 className="text-h2 text-foreground">פעולות מהירות</h2>
               <div className="flex flex-wrap gap-2">
-                <Button variant="primary" size="sm">
+                <Button variant="primary" size="sm" onClick={() => navigate('/tasks')}>
                   <Plus className="w-4 h-4" />
                   משימה חדשה
                 </Button>
-                <Button variant="secondary" size="sm">
+                <Button variant="secondary" size="sm" onClick={() => navigate('/tasks')}>
                   <Clock className="w-4 h-4" />
                   משימות השבוע
                 </Button>
@@ -232,15 +236,16 @@ export default function Dashboard() {
                   variant="secondary"
                   size="sm"
                   className="text-danger-foreground border-danger/40 hover:bg-danger-subtle"
+                  onClick={() => navigate('/tasks')}
                 >
                   <Clock className="w-4 h-4" />
                   משימות באיחור
                 </Button>
-                <Button variant="secondary" size="sm">
+                <Button variant="secondary" size="sm" onClick={() => navigate('/documents')}>
                   <FileText className="w-4 h-4" />
                   מסמכים
                 </Button>
-                <Button variant="secondary" size="sm">
+                <Button variant="secondary" size="sm" onClick={() => navigate('/projects')}>
                   <FolderOpen className="w-4 h-4" />
                   פרויקטים
                 </Button>
@@ -255,7 +260,7 @@ export default function Dashboard() {
               </div>
               <div className="flex flex-col gap-3">
                 {activeProjectsList.map((project, idx) => (
-                  <Card key={idx} variant="interactive">
+                  <Card key={idx} variant="interactive" onClick={() => navigate('/projects')} className="cursor-pointer">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <h3 className="text-h3 text-foreground">{project.name}</h3>
@@ -371,7 +376,7 @@ export default function Dashboard() {
                   <AlertItem key={idx} {...alert} severity="medium" />
                 ))}
               </div>
-              <Button variant="secondary" size="sm" className="self-start">
+              <Button variant="secondary" size="sm" className="self-start" onClick={() => navigate('/projects')}>
                 <CheckSquare className="w-4 h-4" />
                 טען עוד 22 נוספים
               </Button>

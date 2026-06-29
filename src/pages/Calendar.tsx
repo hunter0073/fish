@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, statusToBadgeVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Expand } from 'lucid
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui';
 import { useQuery } from '@/hooks/useQuery';
-import { getGanttProjects } from '@/data/gantt';
+import { getGanttProjects, type Project } from '@/data/gantt';
 
 const MONTHS_HE = ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יונ', 'יול', 'אוג', 'ספט', 'אוק', 'נוב', 'דצמ'];
 
@@ -92,15 +92,20 @@ export default function Calendar() {
   const [statusFilter, setStatusFilter] = useState('הכל');
 
   const { data, loading } = useQuery(getGanttProjects);
-  const items = data ?? [];
+  const [items, setItems] = useState<Project[]>([]);
+  useEffect(() => {
+    if (data) setItems(data);
+  }, [data]);
 
-  const currentDate = new Date(2026, 5, 29); // June 2026
   const currentMonth = year === 2026 ? 6 : -1; // only highlight for 2026
 
-  const filteredProjects =
-    statusFilter === 'הכל'
-      ? items
-      : items.filter((p) => p.status === statusFilter);
+  const filteredProjects = useMemo(
+    () =>
+      statusFilter === 'הכל'
+        ? items
+        : items.filter((p) => p.status === statusFilter),
+    [items, statusFilter],
+  );
 
   function toggleExpand(id: string) {
     setExpandedProjects((prev) => {

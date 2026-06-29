@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, statusToBadgeVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { SkeletonGrid } from '@/components/ui';
+import { SkeletonGrid, Modal, Field, TextInput, Select } from '@/components/ui';
+import { exportToCsv } from '@/lib/download';
 import { useQuery } from '@/hooks/useQuery';
 import { getProjects, ALL_STATUSES, type Project, type ProjectStatus } from '@/data/projects';
 import {
@@ -108,10 +109,118 @@ export default function Projects() {
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [yearFilter, setYearFilter] = useState<string>('2026');
   const [searchQuery, setSearchQuery] = useState('');
-  const [yearCollapsed, setYearCollapsed] = useState(false);
 
   const { data, loading } = useQuery(getProjects);
-  const items = data ?? [];
+  const [items, setItems] = useState<Project[]>([]);
+  useEffect(() => {
+    if (data) setItems(data);
+  }, [data]);
+
+  const [collapsedYears, setCollapsedYears] = useState<Set<number>>(new Set());
+  const toggleYear = (year: number) =>
+    setCollapsedYears((prev) => {
+      const next = new Set(prev);
+      if (next.has(year)) next.delete(year);
+      else next.add(year);
+      return next;
+    });
+
+  const emptyForm = {
+    name: '',
+    number: '',
+    status: 'תכנון' as ProjectStatus,
+    manager: '',
+    startDate: '',
+    endDate: '',
+    progress: '0',
+    type: '',
+  };
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
+
+  const openAdd = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setModalOpen(true);
+  };
+
+  const saveProject = () => {
+    const yearFromDate = (() => {
+      const m = form.startDate.match(/(\d{4})/);
+      return m ? Number(m[1]) : new Date().getFullYear();
+    })();
+    const typeArr = form.type
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const progressNum = Math.max(0, Math.min(100, Number(form.progress) || 0));
+
+    if (editingId) {
+      setItems((prev) =>
+        prev.map((p) =>
+          p.id === editingId
+            ? {
+                ...p,
+                name: form.name,
+                number: form.number,
+                status: form.status,
+                manager: form.manager,
+                startDate: form.startDate,
+                endDate: form.endDate,
+                progress: progressNum,
+                type: typeArr,
+                year: yearFromDate,
+              }
+            : p,
+        ),
+      );
+    } else {
+      const newProject: Project = {
+        id: `p-${Date.now()}`,
+        name: form.name,
+        number: form.number,
+        status: form.status,
+        manager: form.manager,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        progress: progressNum,
+        type: typeArr,
+        year: yearFromDate,
+      };
+      setItems((prev) => [newProject, ...prev]);
+    }
+    setModalOpen(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  };
+
+  const handleExport = () => {
+    const rows = filtered.map((p) => ({
+      number: p.number,
+      name: p.name,
+      status: p.status,
+      manager: p.manager,
+      startDate: p.startDate,
+      endDate: p.endDate,
+      progress: p.progress,
+      type: p.type,
+      year: p.year,
+    }));
+    exportToCsv('projects.csv', rows, [
+      { key: 'number', label: 'מספר' },
+      { key: 'name', label: 'שם' },
+      { key: 'status', label: 'סטטוס' },
+      { key: 'manager', label: 'מנהל' },
+      { key: 'startDate', label: 'תאריך התחלה' },
+      { key: 'endDate', label: 'תאריך סיום' },
+      { key: 'progress', label: 'התקדמות' },
+      { key: 'type', label: 'סוג' },
+      { key: 'year', label: 'שנה' },
+    ]);
+  };
+
+  const canSave = form.name.trim() !== '' && form.number.trim() !== '';
 
   const ALL_TYPES = useMemo(
     () => Array.from(new Set(items.flatMap((p) => p.type))).sort(),
@@ -153,11 +262,11 @@ export default function Projects() {
 
   const headerActions = (
     <>
-      <Button variant="primary" size="sm">
+      <Button variant="primary" size="sm" onClick={openAdd}>
         <Plus className="w-4 h-4" />
         פרויקט חדש
       </Button>
-      <Button variant="secondary" size="sm">
+      <Button variant="secondary" size="sm" onClick={handleExport}>
         <Download className="w-4 h-4" />
         ייצוא
       </Button>
@@ -274,11 +383,12 @@ export default function Projects() {
           <>
         {years.map((year) => {
           const yearProjects = byYear.get(year) ?? [];
+          const isCollapsed = collapsedYears.has(year);
           return (
             <div key={year} className="flex flex-col gap-4">
               {/* Section header */}
               <button
-                onClick={() => setYearCollapsed((c) => !c)}
+                onClick={() => toggleYear(year)}
                 className="flex items-center gap-2 text-right group w-full"
               >
                 <FolderOpen className="w-5 h-5 text-primary shrink-0" />
@@ -287,12 +397,12 @@ export default function Projects() {
                 </span>
                 <ChevronDown
                   className={`w-4 h-4 text-muted-foreground transition-transform ml-auto ${
-                    yearCollapsed ? '-rotate-90' : ''
+                    isCollapsed ? '-rotate-90' : ''
                   }`}
                 />
               </button>
 
-              {!yearCollapsed && (
+              {!isCollapsed && (
                 <>
                   {viewMode === 'list' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -326,6 +436,86 @@ export default function Projects() {
           </>
         )}
       </div>
+
+      <Modal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        title={editingId ? 'עריכת פרויקט' : 'פרויקט חדש'}
+        description="מלא את פרטי הפרויקט"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>
+              ביטול
+            </Button>
+            <Button variant="primary" onClick={saveProject} disabled={!canSave}>
+              שמירה
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <Field label="שם הפרויקט">
+            <TextInput
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            />
+          </Field>
+          <Field label="מספר">
+            <TextInput
+              value={form.number}
+              onChange={(e) => setForm((f) => ({ ...f, number: e.target.value }))}
+            />
+          </Field>
+          <Field label="סטטוס">
+            <Select
+              value={form.status}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, status: e.target.value as ProjectStatus }))
+              }
+            >
+              {ALL_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="מנהל פרויקט">
+            <TextInput
+              value={form.manager}
+              onChange={(e) => setForm((f) => ({ ...f, manager: e.target.value }))}
+            />
+          </Field>
+          <Field label="תאריך התחלה">
+            <TextInput
+              placeholder="01/01/2026"
+              value={form.startDate}
+              onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+            />
+          </Field>
+          <Field label="תאריך סיום">
+            <TextInput
+              placeholder="31/12/2026"
+              value={form.endDate}
+              onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+            />
+          </Field>
+          <Field label="התקדמות (%)">
+            <TextInput
+              type="number"
+              value={form.progress}
+              onChange={(e) => setForm((f) => ({ ...f, progress: e.target.value }))}
+            />
+          </Field>
+          <Field label="סוג (מופרד בפסיקים)">
+            <TextInput
+              placeholder="שיפוץ, חזית"
+              value={form.type}
+              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+            />
+          </Field>
+        </div>
+      </Modal>
     </div>
   );
 }

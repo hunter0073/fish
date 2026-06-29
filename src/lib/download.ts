@@ -15,7 +15,7 @@ function triggerDownload(blob: Blob, filename: string) {
  * Export an array of objects to a CSV file and trigger a download.
  * Adds a UTF-8 BOM so Hebrew renders correctly in Excel.
  */
-export function exportToCsv<T extends Record<string, unknown>>(
+export function exportToCsv<T extends object>(
   filename: string,
   rows: T[],
   headers?: { key: keyof T; label: string }[],

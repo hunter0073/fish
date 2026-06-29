@@ -1,26 +1,98 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Network, Phone, Mail, Edit2, Briefcase, AlertCircle, CheckCircle, DollarSign } from 'lucide-react';
+import { Plus, Network, Phone, Mail, Edit2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
-import { SkeletonGrid } from '@/components/ui';
+import { SkeletonGrid, Modal, Field, TextInput } from '@/components/ui';
 import { useQuery } from '@/hooks/useQuery';
 import { getManagers, type Manager } from '@/data/managers';
 
+interface ManagerForm {
+  name: string;
+  role: string;
+  phone: string;
+  email: string;
+}
+
+const emptyForm: ManagerForm = { name: '', role: '', phone: '', email: '' };
+
 export default function ProjectManagers() {
   const { data, loading } = useQuery(getManagers);
-  const items = data ?? [];
+  const [items, setItems] = useState<Manager[]>([]);
+
+  useEffect(() => {
+    if (data) setItems(data);
+  }, [data]);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<ManagerForm>(emptyForm);
+
+  const nextId = useMemo(
+    () => (items.length ? Math.max(...items.map((m) => m.id)) + 1 : 1),
+    [items]
+  );
+
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setModalOpen(true);
+  };
+
+  const openEdit = (manager: Manager) => {
+    setEditingId(manager.id);
+    setForm({
+      name: manager.name,
+      role: manager.role,
+      phone: manager.phone,
+      email: manager.email,
+    });
+    setModalOpen(true);
+  };
+
+  const canSave = form.name.trim() !== '' && form.role.trim() !== '';
+
+  const handleSave = () => {
+    if (!canSave) return;
+    if (editingId === null) {
+      const newManager: Manager = {
+        id: nextId,
+        name: form.name.trim(),
+        role: form.role.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        stats: { overdue: 0, active: 0, budget: 0, completed: 0 },
+      };
+      setItems((prev) => [...prev, newManager]);
+    } else {
+      setItems((prev) =>
+        prev.map((m) =>
+          m.id === editingId
+            ? {
+                ...m,
+                name: form.name.trim(),
+                role: form.role.trim(),
+                phone: form.phone.trim(),
+                email: form.email.trim(),
+              }
+            : m
+        )
+      );
+    }
+    setModalOpen(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  };
 
   return (
     <div dir="rtl" className="flex flex-col gap-4 p-4 md:p-6">
       <PageHeader
         title="מנהלי פרויקטים"
-        count={8}
+        count={items.length}
         actions={
           <>
-            <Button variant="primary" size="md">
+            <Button variant="primary" size="md" onClick={openCreate}>
               <Plus className="w-4 h-4" />
               מנהל חדש
             </Button>
@@ -51,7 +123,7 @@ export default function ProjectManagers() {
                       <div className="text-body-sm text-muted-foreground">{manager.role}</div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="p-1.5">
+                  <Button variant="ghost" size="sm" className="p-1.5" onClick={() => openEdit(manager)}>
                     <Edit2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -100,6 +172,49 @@ export default function ProjectManagers() {
           ))}
         </div>
       )}
+
+      <Modal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        title={editingId === null ? 'מנהל חדש' : 'עריכת מנהל'}
+        footer={
+          <>
+            <Button variant="secondary" size="md" onClick={() => setModalOpen(false)}>
+              ביטול
+            </Button>
+            <Button variant="primary" size="md" onClick={handleSave} disabled={!canSave}>
+              שמירה
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <Field label="שם">
+            <TextInput
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            />
+          </Field>
+          <Field label="תפקיד">
+            <TextInput
+              value={form.role}
+              onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+            />
+          </Field>
+          <Field label="טלפון">
+            <TextInput
+              value={form.phone}
+              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+            />
+          </Field>
+          <Field label="אימייל">
+            <TextInput
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            />
+          </Field>
+        </div>
+      </Modal>
     </div>
   );
 }

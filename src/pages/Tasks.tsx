@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { SkeletonGrid } from '@/components/ui';
+import { SkeletonGrid, Modal, Field, TextInput, Select } from '@/components/ui';
 import { useQuery } from '@/hooks/useQuery';
 import { getTasks, type Task } from '@/data/tasks';
 import { Plus, Search, Edit2, Flag, Clock, AlertTriangle } from 'lucide-react';
@@ -34,7 +34,7 @@ function statusToBadgeVariant(status: Task['status']) {
   }
 }
 
-function TaskRow({ task }: { task: Task }) {
+function TaskRow({ task, onEdit }: { task: Task; onEdit: (task: Task) => void }) {
   return (
     <Card
       variant={task.isOverdue ? 'alert' : 'default'}
@@ -84,7 +84,12 @@ function TaskRow({ task }: { task: Task }) {
         </div>
 
         {/* Edit button */}
-        <Button variant="ghost" size="sm" className="flex-shrink-0 p-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex-shrink-0 p-1.5"
+          onClick={() => onEdit(task)}
+        >
           <Edit2 className="w-4 h-4" />
         </Button>
       </div>
@@ -92,22 +97,49 @@ function TaskRow({ task }: { task: Task }) {
   );
 }
 
+const PRIORITIES: Task['priority'][] = ['קריטית', 'גבוהה', 'בינונית', 'נמוכה'];
+const STATUSES: Task['status'][] = ['פתוחה', 'בביצוע', 'ממתינה לאישור', 'הושלמה'];
+
+interface TaskFormState {
+  name: string;
+  dueDate: string;
+  priority: Task['priority'];
+  status: Task['status'];
+  project: string;
+  isMilestone: boolean;
+}
+
+const emptyForm: TaskFormState = {
+  name: '',
+  dueDate: '',
+  priority: 'בינונית',
+  status: 'פתוחה',
+  project: '',
+  isMilestone: false,
+};
+
 export default function Tasks() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
 
   const { data, loading } = useQuery(getTasks);
-  const items = data ?? [];
+  const [items, setItems] = useState<Task[]>([]);
+  useEffect(() => {
+    if (data) setItems(data);
+  }, [data]);
 
-  const overdueTasks = items.filter((t) => t.isOverdue);
-  const upcomingTasks = items.filter((t) => !t.isOverdue);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<TaskFormState>(emptyForm);
 
-  const projects = Array.from(new Set(items.map((t) => t.project)));
-  const statuses: Task['status'][] = ['פתוחה', 'בביצוע', 'ממתינה לאישור', 'הושלמה'];
+  const projects = useMemo(
+    () => Array.from(new Set(items.map((t) => t.project))),
+    [items]
+  );
 
-  function filterTasks(tasks: Task[]) {
-    return tasks.filter((task) => {
+  const filterTasks = (tasks: Task[]) =>
+    tasks.filter((task) => {
       const matchesSearch =
         searchQuery === '' ||
         task.name.includes(searchQuery) ||
@@ -118,10 +150,78 @@ export default function Tasks() {
         projectFilter === '' || task.project === projectFilter;
       return matchesSearch && matchesStatus && matchesProject;
     });
+
+  const filteredOverdue = useMemo(
+    () => filterTasks(items.filter((t) => t.isOverdue)),
+    [items, searchQuery, statusFilter, projectFilter]
+  );
+  const filteredUpcoming = useMemo(
+    () => filterTasks(items.filter((t) => !t.isOverdue)),
+    [items, searchQuery, statusFilter, projectFilter]
+  );
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setModalOpen(true);
   }
 
-  const filteredOverdue = filterTasks(overdueTasks);
-  const filteredUpcoming = filterTasks(upcomingTasks);
+  function openEdit(task: Task) {
+    setEditingId(task.id);
+    setForm({
+      name: task.name,
+      dueDate: task.dueDate,
+      priority: task.priority,
+      status: task.status,
+      project: task.project,
+      isMilestone: task.isMilestone,
+    });
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  }
+
+  const canSave = form.name.trim() !== '' && form.dueDate.trim() !== '';
+
+  function handleSave() {
+    if (!canSave) return;
+    if (editingId !== null) {
+      setItems((prev) =>
+        prev.map((t) =>
+          t.id === editingId
+            ? {
+                ...t,
+                name: form.name,
+                dueDate: form.dueDate,
+                priority: form.priority,
+                status: form.status,
+                project: form.project,
+                isMilestone: form.isMilestone,
+              }
+            : t
+        )
+      );
+    } else {
+      const newId =
+        items.reduce((max, t) => Math.max(max, t.id), 0) + 1;
+      const newTask: Task = {
+        id: newId,
+        name: form.name,
+        dueDate: form.dueDate,
+        priority: form.priority,
+        status: form.status,
+        project: form.project,
+        isMilestone: form.isMilestone,
+        isOverdue: false,
+      };
+      setItems((prev) => [...prev, newTask]);
+    }
+    closeModal();
+  }
 
   return (
     <div dir="rtl">
@@ -129,7 +229,7 @@ export default function Tasks() {
         title="משימות ואבני דרך"
         count={items.length}
         actions={
-          <Button variant="primary">
+          <Button variant="primary" onClick={openCreate}>
             <Plus className="w-4 h-4" />
             + משימה חדשה
           </Button>
@@ -161,7 +261,7 @@ export default function Tasks() {
               className="px-3 py-2 text-body-sm bg-background border border-border rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
             >
               <option value="">כל הסטטוסים</option>
-              {statuses.map((s) => (
+              {STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
@@ -193,7 +293,7 @@ export default function Tasks() {
             </div>
             <div className="space-y-2">
               {filteredOverdue.map((task) => (
-                <TaskRow key={task.id} task={task} />
+                <TaskRow key={task.id} task={task} onEdit={openEdit} />
               ))}
             </div>
           </section>
@@ -210,7 +310,7 @@ export default function Tasks() {
             </div>
             <div className="space-y-2">
               {filteredUpcoming.map((task) => (
-                <TaskRow key={task.id} task={task} />
+                <TaskRow key={task.id} task={task} onEdit={openEdit} />
               ))}
             </div>
           </section>
@@ -223,6 +323,82 @@ export default function Tasks() {
         )}
       </div>
       )}
+
+      <Modal
+        open={modalOpen}
+        onOpenChange={(o) => (o ? setModalOpen(true) : closeModal())}
+        title={editingId !== null ? 'עריכת משימה' : 'משימה חדשה'}
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" onClick={closeModal}>
+              ביטול
+            </Button>
+            <Button variant="primary" disabled={!canSave} onClick={handleSave}>
+              שמירה
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3" dir="rtl">
+          <Field label="שם המשימה">
+            <TextInput
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
+          </Field>
+          <Field label="תאריך יעד">
+            <TextInput
+              value={form.dueDate}
+              placeholder="01.01.2026"
+              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+            />
+          </Field>
+          <Field label="עדיפות">
+            <Select
+              value={form.priority}
+              onChange={(e) =>
+                setForm({ ...form, priority: e.target.value as Task['priority'] })
+              }
+            >
+              {PRIORITIES.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="סטטוס">
+            <Select
+              value={form.status}
+              onChange={(e) =>
+                setForm({ ...form, status: e.target.value as Task['status'] })
+              }
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="פרויקט">
+            <TextInput
+              value={form.project}
+              onChange={(e) => setForm({ ...form, project: e.target.value })}
+            />
+          </Field>
+          <label className="flex items-center gap-2 text-body-sm text-foreground">
+            <input
+              type="checkbox"
+              checked={form.isMilestone}
+              onChange={(e) =>
+                setForm({ ...form, isMilestone: e.target.checked })
+              }
+            />
+            אבן דרך
+          </label>
+        </div>
+      </Modal>
     </div>
   );
 }
