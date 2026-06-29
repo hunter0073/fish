@@ -5,3 +5,5 @@ export { PageHeader } from './PageHeader';
 export { StatCard } from './StatCard';
 export { AlertItem } from './AlertItem';
 export { Skeleton, SkeletonCard, SkeletonGrid } from './Skeleton';
+export { Modal } from './Modal';
+export { Field, TextInput, TextArea, Select } from './Field';
