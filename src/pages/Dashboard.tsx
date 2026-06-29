@@ -114,7 +114,7 @@ export default function Dashboard() {
   const [alertsOpen, setAlertsOpen] = useState(true);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
 
-  const criticalAlerts = alerts.filter((a) => a.severity === 'high' || a.severity === 'critical');
+  const criticalAlerts = alerts.filter((a) => a.severity === 'high');
   const visibleAlerts = showAllAlerts ? alerts.slice(0, 5) : alerts.slice(0, 3);
 
   return (
