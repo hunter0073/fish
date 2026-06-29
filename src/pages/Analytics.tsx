@@ -171,9 +171,11 @@ export default function Analytics() {
                     angle={-25}
                     textAnchor="end"
                     interval={0}
+                    reversed
                   />
                   <YAxis
                     allowDecimals={false}
+                    orientation="right"
                     tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <Tooltip

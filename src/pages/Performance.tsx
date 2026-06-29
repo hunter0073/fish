@@ -98,12 +98,14 @@ export default function Performance() {
                 type="number"
                 domain={[0, 100]}
                 tickFormatter={(v) => `${v}%`}
+                reversed
               />
               <YAxis
                 type="category"
                 dataKey="name"
                 width={160}
-                tick={{ fontSize: 12, textAnchor: 'start', dx: -160 }}
+                orientation="right"
+                tick={{ fontSize: 12 }}
               />
               <Tooltip formatter={(value: number) => [`${value}%`]} />
               <Legend verticalAlign="bottom" height={36} />
@@ -111,13 +113,13 @@ export default function Performance() {
                 dataKey="taskProgress"
                 name="התקדמות ממשימות"
                 fill="hsl(var(--primary))"
-                radius={[0, 4, 4, 0]}
+                radius={[4, 0, 0, 4]}
               />
               <Bar
                 dataKey="manualProgress"
                 name="התקדמות ידנית שדווחה"
                 fill="hsl(var(--foreground-muted))"
-                radius={[0, 4, 4, 0]}
+                radius={[4, 0, 0, 4]}
               />
             </BarChart>
           </ResponsiveContainer>

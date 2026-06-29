@@ -67,11 +67,11 @@ export default function KPI() {
                 margin={{ top: 4, right: 32, left: 0, bottom: 4 }}
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                <YAxis type="category" dataKey="name" width={160} />
+                <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} reversed />
+                <YAxis type="category" dataKey="name" width={160} orientation="right" />
                 <Tooltip formatter={(value: number) => [`${value}%`, 'ניצול תקציב']} />
                 <Bar dataKey="budget" fill="hsl(var(--primary))" maxBarSize={20}>
-                  <LabelList dataKey="budget" position="right" formatter={(v: number) => `${v}%`} />
+                  <LabelList dataKey="budget" position="left" formatter={(v: number) => `${v}%`} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

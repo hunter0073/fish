@@ -4,8 +4,21 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
+html,
+body,
+#root {
   direction: rtl;
+}
+
+body {
+  text-align: right;
+}
+
+/* Latin/number runs stay internally LTR without breaking the RTL flow */
+.ltr-nums {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
 }
 
 :root {

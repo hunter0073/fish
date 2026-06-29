@@ -355,8 +355,8 @@ export default function Dashboard() {
                       margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 12 }} reversed />
+                      <YAxis tick={{ fontSize: 12 }} allowDecimals={false} orientation="right" />
                       <Tooltip
                         formatter={(value: number) => [value, 'פרויקטים']}
                         contentStyle={{ direction: 'rtl', borderRadius: 8 }}
