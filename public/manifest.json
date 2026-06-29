@@ -1,0 +1,21 @@
+{
+  "name": "UniProject Manager",
+  "short_name": "UniProject",
+  "description": "ניהול פרויקטי בנייה ותשתית — אוניברסיטת תל אביב",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#142A5C",
+  "theme_color": "#142A5C",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
