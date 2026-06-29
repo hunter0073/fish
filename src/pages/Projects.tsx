@@ -3,6 +3,9 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge, statusToBadgeVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { SkeletonGrid } from '@/components/ui';
+import { useQuery } from '@/hooks/useQuery';
+import { getProjects, ALL_STATUSES, type Project, type ProjectStatus } from '@/data/projects';
 import {
   Plus,
   Download,
@@ -15,353 +18,6 @@ import {
   User,
   TrendingUp,
 } from 'lucide-react';
-
-type ProjectStatus = 'תכנון' | 'בביצוע' | 'ממתין לאישור' | 'הושלם' | 'מושהה';
-
-interface Project {
-  id: string;
-  name: string;
-  number: string;
-  status: ProjectStatus;
-  manager: string;
-  startDate: string;
-  endDate: string;
-  progress: number;
-  type: string[];
-  year: number;
-}
-
-const ALL_STATUSES: ProjectStatus[] = ['תכנון', 'בביצוע', 'ממתין לאישור', 'הושלם', 'מושהה'];
-
-const PROJECTS: Project[] = [
-  {
-    id: '1',
-    name: 'היפוקסיה',
-    number: '#2026-001',
-    status: 'תכנון',
-    manager: 'אלכסיי זאייזדני',
-    startDate: '01/01/2026',
-    endDate: '31/12/2026',
-    progress: 0,
-    type: ['תחזוקה'],
-    year: 2026,
-  },
-  {
-    id: '2',
-    name: 'קפלון - שיפוץ משרדים קומה 3',
-    number: '#2026-002',
-    status: 'תכנון',
-    manager: 'אלכסיי זאייזדני',
-    startDate: '01/01/2026',
-    endDate: '30/06/2026',
-    progress: 0,
-    type: ['שיפוץ', 'בינונית'],
-    year: 2026,
-  },
-  {
-    id: '3',
-    name: 'סילבן אדמס - צביעת חזית',
-    number: '#2026-003',
-    status: 'תכנון',
-    manager: 'עידו ברשן',
-    startDate: '01/03/2026',
-    endDate: '31/08/2026',
-    progress: 0,
-    type: ['צביעה', 'חזית'],
-    year: 2026,
-  },
-  {
-    id: '4',
-    name: 'אורנשטיין - שיפוץ מסדרון',
-    number: '#2026-004',
-    status: 'בביצוע',
-    manager: 'אורין לוי',
-    startDate: '01/01/2026',
-    endDate: '31/03/2026',
-    progress: 25,
-    type: ['שיפוץ'],
-    year: 2026,
-  },
-  {
-    id: '5',
-    name: 'שרייבר - שיפוץ משרדי הנהלה',
-    number: '#2026-005',
-    status: 'תכנון',
-    manager: 'אלכסיי זאייזדני',
-    startDate: '01/06/2026',
-    endDate: '31/12/2026',
-    progress: 0,
-    type: ['שיפוץ', 'גדולה'],
-    year: 2026,
-  },
-  {
-    id: '6',
-    name: 'בית כנסת - החלפת תקרה',
-    number: '#2026-006',
-    status: 'תכנון',
-    manager: 'עידו ברשן',
-    startDate: '01/04/2026',
-    endDate: '30/09/2026',
-    progress: 0,
-    type: ['תחזוקה', 'תקרה'],
-    year: 2026,
-  },
-  {
-    id: '7',
-    name: 'מעבדת ביוכימיה - שיפוץ כללי',
-    number: '#2026-007',
-    status: 'בביצוע',
-    manager: 'אורין לוי',
-    startDate: '15/01/2026',
-    endDate: '15/06/2026',
-    progress: 40,
-    type: ['שיפוץ', 'מעבדה'],
-    year: 2026,
-  },
-  {
-    id: '8',
-    name: 'ספריה מרכזית - חידוש גג',
-    number: '#2026-008',
-    status: 'ממתין לאישור',
-    manager: 'עידו ברשן',
-    startDate: '01/05/2026',
-    endDate: '31/10/2026',
-    progress: 5,
-    type: ['גג', 'תחזוקה'],
-    year: 2026,
-  },
-  {
-    id: '9',
-    name: 'בריכת שחיה - שיקום אריחים',
-    number: '#2026-009',
-    status: 'בביצוע',
-    manager: 'אלכסיי זאייזדני',
-    startDate: '01/02/2026',
-    endDate: '30/04/2026',
-    progress: 60,
-    type: ['שיקום', 'בריכה'],
-    year: 2026,
-  },
-  {
-    id: '10',
-    name: 'אולם ספורט - החלפת ריצוף',
-    number: '#2026-010',
-    status: 'הושלם',
-    manager: 'אורין לוי',
-    startDate: '01/01/2026',
-    endDate: '28/02/2026',
-    progress: 100,
-    type: ['ריצוף', 'ספורט'],
-    year: 2026,
-  },
-  {
-    id: '11',
-    name: 'בניין הנדסה - חיזוק מבני',
-    number: '#2026-011',
-    status: 'תכנון',
-    manager: 'עידו ברשן',
-    startDate: '01/07/2026',
-    endDate: '31/12/2026',
-    progress: 0,
-    type: ['חיזוק', 'גדולה'],
-    year: 2026,
-  },
-  {
-    id: '12',
-    name: 'כיכר הכניסה הראשית - שדרוג',
-    number: '#2026-012',
-    status: 'ממתין לאישור',
-    manager: 'אלכסיי זאייזדני',
-    startDate: '01/04/2026',
-    endDate: '30/06/2026',
-    progress: 10,
-    type: ['שדרוג', 'חוץ'],
-    year: 2026,
-  },
-  {
-    id: '13',
-    name: 'מסלול הליכה - סלילה מחדש',
-    number: '#2026-013',
-    status: 'בביצוע',
-    manager: 'אורין לוי',
-    startDate: '01/03/2026',
-    endDate: '31/05/2026',
-    progress: 70,
-    type: ['תשתית', 'חוץ'],
-    year: 2026,
-  },
-  {
-    id: '14',
-    name: 'דקאנט - שיפוץ חדר ישיבות',
-    number: '#2026-014',
-    status: 'הושלם',
-    manager: 'עידו ברשן',
-    startDate: '01/01/2026',
-    endDate: '15/02/2026',
-    progress: 100,
-    type: ['שיפוץ', 'קטנה'],
-    year: 2026,
-  },
-  {
-    id: '15',
-    name: 'מעונות סטודנטים - צביעה חיצונית',
-    number: '#2026-015',
-    status: 'תכנון',
-    manager: 'אלכסיי זאייזדני',
-    startDate: '01/08/2026',
-    endDate: '30/11/2026',
-    progress: 0,
-    type: ['צביעה', 'חזית'],
-    year: 2026,
-  },
-  {
-    id: '16',
-    name: 'פקולטה למשפטים - פריסת כבלים',
-    number: '#2026-016',
-    status: 'בביצוע',
-    manager: 'אורין לוי',
-    startDate: '01/02/2026',
-    endDate: '30/04/2026',
-    progress: 85,
-    type: ['תשתית', 'חשמל'],
-    year: 2026,
-  },
-  {
-    id: '17',
-    name: 'אולם הרצאות 200 - אקוסטיקה',
-    number: '#2026-017',
-    status: 'ממתין לאישור',
-    manager: 'עידו ברשן',
-    startDate: '01/06/2026',
-    endDate: '31/08/2026',
-    progress: 0,
-    type: ['אקוסטיקה', 'בינונית'],
-    year: 2026,
-  },
-  {
-    id: '18',
-    name: 'מגדל מנהלה - שיפוץ לובי',
-    number: '#2026-018',
-    status: 'תכנון',
-    manager: 'אלכסיי זאייזדני',
-    startDate: '01/09/2026',
-    endDate: '31/12/2026',
-    progress: 0,
-    type: ['שיפוץ', 'לובי'],
-    year: 2026,
-  },
-  {
-    id: '19',
-    name: 'חניון צפון - תיקוני אספלט',
-    number: '#2026-019',
-    status: 'הושלם',
-    manager: 'אורין לוי',
-    startDate: '10/01/2026',
-    endDate: '10/02/2026',
-    progress: 100,
-    type: ['תשתית', 'חוץ'],
-    year: 2026,
-  },
-  {
-    id: '20',
-    name: 'מכון מחקר - הקמת חממה',
-    number: '#2026-020',
-    status: 'בביצוע',
-    manager: 'עידו ברשן',
-    startDate: '01/03/2026',
-    endDate: '30/09/2026',
-    progress: 30,
-    type: ['הקמה', 'גדולה'],
-    year: 2026,
-  },
-  {
-    id: '21',
-    name: 'בניין רקטוראט - החלפת חלונות',
-    number: '#2026-021',
-    status: 'מושהה',
-    manager: 'אלכסיי זאייזדני',
-    startDate: '01/04/2026',
-    endDate: '30/06/2026',
-    progress: 15,
-    type: ['תחזוקה', 'חלונות'],
-    year: 2026,
-  },
-  {
-    id: '22',
-    name: 'גן בוטני - שבילי גישה',
-    number: '#2026-022',
-    status: 'תכנון',
-    manager: 'אורין לוי',
-    startDate: '01/05/2026',
-    endDate: '30/10/2026',
-    progress: 0,
-    type: ['נוף', 'חוץ'],
-    year: 2026,
-  },
-  {
-    id: '23',
-    name: 'פקולטה למדעים - מערכת מיזוג',
-    number: '#2026-023',
-    status: 'בביצוע',
-    manager: 'עידו ברשן',
-    startDate: '01/02/2026',
-    endDate: '31/05/2026',
-    progress: 55,
-    type: ['מיזוג', 'תשתית'],
-    year: 2026,
-  },
-  {
-    id: '24',
-    name: 'אמפיתיאטרון - שיפוץ ספסלים',
-    number: '#2026-024',
-    status: 'ממתין לאישור',
-    manager: 'אלכסיי זאייזדני',
-    startDate: '01/07/2026',
-    endDate: '31/08/2026',
-    progress: 0,
-    type: ['שיפוץ', 'חוץ'],
-    year: 2026,
-  },
-  {
-    id: '25',
-    name: 'מעבדת מחשבים - רצפה מוגבהת',
-    number: '#2026-025',
-    status: 'הושלם',
-    manager: 'אורין לוי',
-    startDate: '01/01/2026',
-    endDate: '20/03/2026',
-    progress: 100,
-    type: ['ריצוף', 'מעבדה'],
-    year: 2026,
-  },
-  {
-    id: '26',
-    name: 'מרכז סטודנטים - הרחבת לאונות',
-    number: '#2026-026',
-    status: 'מושהה',
-    manager: 'עידו ברשן',
-    startDate: '01/03/2026',
-    endDate: '30/09/2026',
-    progress: 5,
-    type: ['הרחבה', 'גדולה'],
-    year: 2026,
-  },
-  {
-    id: '27',
-    name: 'שער הכניסה הדרומי - שדרוג תאורה',
-    number: '#2026-027',
-    status: 'תכנון',
-    manager: 'אלכסיי זאייזדני',
-    startDate: '01/06/2026',
-    endDate: '31/08/2026',
-    progress: 0,
-    type: ['חשמל', 'חוץ'],
-    year: 2026,
-  },
-];
-
-const ALL_TYPES = Array.from(new Set(PROJECTS.flatMap((p) => p.type))).sort();
-const ALL_YEARS = Array.from(new Set(PROJECTS.map((p) => p.year))).sort();
 
 function ProgressBar({ value }: { value: number }) {
   return (
@@ -454,8 +110,20 @@ export default function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
   const [yearCollapsed, setYearCollapsed] = useState(false);
 
+  const { data, loading } = useQuery(getProjects);
+  const items = data ?? [];
+
+  const ALL_TYPES = useMemo(
+    () => Array.from(new Set(items.flatMap((p) => p.type))).sort(),
+    [items],
+  );
+  const ALL_YEARS = useMemo(
+    () => Array.from(new Set(items.map((p) => p.year))).sort(),
+    [items],
+  );
+
   const filtered = useMemo(() => {
-    return PROJECTS.filter((p) => {
+    return items.filter((p) => {
       if (yearFilter && p.year !== Number(yearFilter)) return false;
       if (statusFilter && p.status !== statusFilter) return false;
       if (typeFilter && !p.type.includes(typeFilter)) return false;
@@ -470,7 +138,7 @@ export default function Projects() {
       }
       return true;
     });
-  }, [statusFilter, typeFilter, yearFilter, searchQuery]);
+  }, [items, statusFilter, typeFilter, yearFilter, searchQuery]);
 
   const byYear = useMemo(() => {
     const map = new Map<number, Project[]>();
@@ -591,15 +259,19 @@ export default function Projects() {
               <ChevronDown className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             </div>
 
-            {filtered.length !== PROJECTS.length && (
+            {filtered.length !== items.length && (
               <span className="text-body-sm text-muted-foreground">
-                {filtered.length} מתוך {PROJECTS.length} פרויקטים
+                {filtered.length} מתוך {items.length} פרויקטים
               </span>
             )}
           </div>
         </Card>
 
         {/* Projects grouped by year */}
+        {loading ? (
+          <SkeletonGrid count={6} />
+        ) : (
+          <>
         {years.map((year) => {
           const yearProjects = byYear.get(year) ?? [];
           return (
@@ -650,6 +322,8 @@ export default function Projects() {
             <Search className="w-10 h-10 opacity-30" />
             <p className="text-body">לא נמצאו פרויקטים התואמים את החיפוש</p>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

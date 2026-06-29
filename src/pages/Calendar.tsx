@@ -5,106 +5,11 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Expand } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui';
+import { useQuery } from '@/hooks/useQuery';
+import { getGanttProjects } from '@/data/gantt';
 
 const MONTHS_HE = ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יונ', 'יול', 'אוג', 'ספט', 'אוק', 'נוב', 'דצמ'];
-
-interface Task {
-  name: string;
-  startMonth: number;
-  endMonth: number;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  status: string;
-  startMonth: number;
-  endMonth: number;
-  tasks: Task[];
-}
-
-const MOCK_PROJECTS: Project[] = [
-  {
-    id: '1',
-    name: 'היפוקסיה',
-    status: 'תכנון',
-    startMonth: 1,
-    endMonth: 12,
-    tasks: [],
-  },
-  {
-    id: '2',
-    name: 'קפלון-שיפוץ',
-    status: 'תכנון',
-    startMonth: 1,
-    endMonth: 6,
-    tasks: [],
-  },
-  {
-    id: '3',
-    name: 'סילבן אדמס',
-    status: 'תכנון',
-    startMonth: 3,
-    endMonth: 8,
-    tasks: [],
-  },
-  {
-    id: '4',
-    name: 'אורנשטיין',
-    status: 'בביצוע',
-    startMonth: 1,
-    endMonth: 3,
-    tasks: [{ name: 'בדיקת יסודות', startMonth: 1, endMonth: 2 }],
-  },
-  {
-    id: '5',
-    name: 'שרייבר',
-    status: 'תכנון',
-    startMonth: 6,
-    endMonth: 12,
-    tasks: [],
-  },
-  {
-    id: '6',
-    name: 'בית כנסת',
-    status: 'תכנון',
-    startMonth: 4,
-    endMonth: 9,
-    tasks: [],
-  },
-  {
-    id: '7',
-    name: 'פרויקט לוי',
-    status: 'בביצוע',
-    startMonth: 2,
-    endMonth: 7,
-    tasks: [],
-  },
-  {
-    id: '8',
-    name: 'מרכז קהילתי',
-    status: 'ממתין לאישור',
-    startMonth: 5,
-    endMonth: 11,
-    tasks: [],
-  },
-  {
-    id: '9',
-    name: 'גן ילדים צפון',
-    status: 'תכנון',
-    startMonth: 3,
-    endMonth: 10,
-    tasks: [],
-  },
-  {
-    id: '10',
-    name: 'מגדל עופר',
-    status: 'באיחור',
-    startMonth: 1,
-    endMonth: 8,
-    tasks: [],
-  },
-];
 
 const STATUS_OPTIONS = ['הכל', 'תכנון', 'בביצוע', 'ממתין לאישור', 'באיחור', 'הושלם', 'מושהה'];
 
@@ -186,13 +91,16 @@ export default function Calendar() {
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState('הכל');
 
+  const { data, loading } = useQuery(getGanttProjects);
+  const items = data ?? [];
+
   const currentDate = new Date(2026, 5, 29); // June 2026
   const currentMonth = year === 2026 ? 6 : -1; // only highlight for 2026
 
   const filteredProjects =
     statusFilter === 'הכל'
-      ? MOCK_PROJECTS
-      : MOCK_PROJECTS.filter((p) => p.status === statusFilter);
+      ? items
+      : items.filter((p) => p.status === statusFilter);
 
   function toggleExpand(id: string) {
     setExpandedProjects((prev) => {
@@ -207,7 +115,7 @@ export default function Calendar() {
   }
 
   function expandAll() {
-    const allWithTasks = MOCK_PROJECTS.filter((p) => p.tasks.length > 0).map((p) => p.id);
+    const allWithTasks = items.filter((p) => p.tasks.length > 0).map((p) => p.id);
     setExpandedProjects(new Set(allWithTasks));
   }
 
@@ -216,7 +124,7 @@ export default function Calendar() {
   }
 
   const allExpanded =
-    MOCK_PROJECTS.filter((p) => p.tasks.length > 0).every((p) => expandedProjects.has(p.id));
+    items.filter((p) => p.tasks.length > 0).every((p) => expandedProjects.has(p.id));
 
   return (
     <div className="flex flex-col gap-6 p-6" dir="rtl">
@@ -300,7 +208,15 @@ export default function Calendar() {
             </div>
 
             {/* Project rows */}
-            {filteredProjects.map((project, projectIndex) => {
+            {loading && (
+              <div className="flex flex-col gap-2 p-4">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <Skeleton key={index} className="h-10 w-full" />
+                ))}
+              </div>
+            )}
+
+            {!loading && filteredProjects.map((project, projectIndex) => {
               const isExpanded = expandedProjects.has(project.id);
               const hasTasks = project.tasks.length > 0;
 
@@ -409,7 +325,7 @@ export default function Calendar() {
               );
             })}
 
-            {filteredProjects.length === 0 && (
+            {!loading && filteredProjects.length === 0 && (
               <div className="flex items-center justify-center py-16 text-muted-foreground text-body-sm">
                 לא נמצאו פרויקטים עבור הסינון שנבחר
               </div>

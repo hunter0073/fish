@@ -14,6 +14,9 @@ import {
 import { PageHeader } from '../components/ui/PageHeader';
 import { StatCard } from '../components/ui/StatCard';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
+import { Skeleton } from '@/components/ui';
+import { useQuery } from '@/hooks/useQuery';
+import { getProgressData } from '@/data/performance';
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
@@ -48,22 +51,12 @@ const summaryCards = [
   },
 ];
 
-const progressData = [
-  { name: 'היפוקסיה', taskProgress: 2, manualProgress: 0 },
-  { name: 'קפלון - שיפוץ משרדים', taskProgress: 0, manualProgress: 0 },
-  { name: 'סילבן אדמס - צביעת חזית', taskProgress: 3, manualProgress: 0 },
-  { name: 'אורנשטיין - שיפוץ מסדרון', taskProgress: 20, manualProgress: 25 },
-  { name: 'שרייבר - שיפוץ משרדי הנהלה', taskProgress: 0, manualProgress: 0 },
-  { name: 'בית כנסת - החלפת תקרה', taskProgress: 1, manualProgress: 0 },
-  { name: 'מעבדת ביוכימיה - שיפוץ', taskProgress: 18, manualProgress: 15 },
-  { name: 'ספריה מרכזית - חידוש גג', taskProgress: 5, manualProgress: 5 },
-  { name: 'בריכת שחיה - שיקום אריחים', taskProgress: 22, manualProgress: 20 },
-  { name: 'אולם ספורט - ריצוף', taskProgress: 10, manualProgress: 8 },
-];
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function Performance() {
+  const { data, loading } = useQuery(getProgressData);
+  const items = data ?? [];
+
   return (
     <div className="flex flex-col gap-6 p-6" dir="rtl">
       <PageHeader
@@ -91,9 +84,12 @@ export default function Performance() {
           <CardTitle>קצב התקדמות לפי פרויקט</CardTitle>
         </CardHeader>
         <CardContent>
+          {loading ? (
+            <Skeleton className="w-full h-[350px]" />
+          ) : (
           <ResponsiveContainer width="100%" height={350}>
             <BarChart
-              data={progressData}
+              data={items}
               layout="vertical"
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
@@ -125,6 +121,7 @@ export default function Performance() {
               />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
     </div>

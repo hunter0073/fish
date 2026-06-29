@@ -3,101 +3,10 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { SkeletonGrid } from '@/components/ui';
+import { useQuery } from '@/hooks/useQuery';
+import { getTasks, type Task } from '@/data/tasks';
 import { Plus, Search, Edit2, Flag, Clock, AlertTriangle } from 'lucide-react';
-
-interface Task {
-  id: number;
-  name: string;
-  dueDate: string;
-  priority: 'קריטית' | 'גבוהה' | 'בינונית' | 'נמוכה';
-  status: 'פתוחה' | 'בביצוע' | 'ממתינה לאישור' | 'הושלמה';
-  project: string;
-  isMilestone: boolean;
-  isOverdue: boolean;
-}
-
-const TASKS: Task[] = [
-  {
-    id: 1,
-    name: 'פתיחת המעבדות לסטודנטים',
-    dueDate: '01.10.2025',
-    priority: 'גבוהה',
-    status: 'פתוחה',
-    project: 'היפוקסיה',
-    isMilestone: false,
-    isOverdue: true,
-  },
-  {
-    id: 2,
-    name: 'קבלת אישור רישוי בנייה',
-    dueDate: '01.07.2025',
-    priority: 'קריטית',
-    status: 'ממתינה לאישור',
-    project: 'קפלון - שיפוץ משרדים',
-    isMilestone: true,
-    isOverdue: true,
-  },
-  {
-    id: 3,
-    name: 'סיום עבודות איטום גג',
-    dueDate: '15.08.2025',
-    priority: 'גבוהה',
-    status: 'פתוחה',
-    project: 'בית כנסת - החלפת תקרה',
-    isMilestone: false,
-    isOverdue: true,
-  },
-  {
-    id: 4,
-    name: 'בדיקת תשתיות חשמל',
-    dueDate: '01.09.2025',
-    priority: 'בינונית',
-    status: 'פתוחה',
-    project: 'אורנשטיין - שיפוץ מסדרון',
-    isMilestone: false,
-    isOverdue: true,
-  },
-  {
-    id: 5,
-    name: 'הגשת דו"ח ביניים למממן',
-    dueDate: '15.02.2026',
-    priority: 'גבוהה',
-    status: 'בביצוע',
-    project: 'היפוקסיה',
-    isMilestone: true,
-    isOverdue: false,
-  },
-  {
-    id: 6,
-    name: 'בחירת קבלן ביצוע לשלב ב׳',
-    dueDate: '01.03.2026',
-    priority: 'בינונית',
-    status: 'פתוחה',
-    project: 'קפלון - שיפוץ משרדים',
-    isMilestone: false,
-    isOverdue: false,
-  },
-  {
-    id: 7,
-    name: 'סיום עבודות צנרת מים',
-    dueDate: '20.04.2026',
-    priority: 'נמוכה',
-    status: 'פתוחה',
-    project: 'בית כנסת - החלפת תקרה',
-    isMilestone: false,
-    isOverdue: false,
-  },
-  {
-    id: 8,
-    name: 'אישור תוכניות אדריכליות',
-    dueDate: '10.05.2026',
-    priority: 'קריטית',
-    status: 'ממתינה לאישור',
-    project: 'אורנשטיין - שיפוץ מסדרון',
-    isMilestone: true,
-    isOverdue: false,
-  },
-];
 
 function priorityToBadgeVariant(priority: Task['priority']) {
   switch (priority) {
@@ -188,10 +97,13 @@ export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
 
-  const overdueTasks = TASKS.filter((t) => t.isOverdue);
-  const upcomingTasks = TASKS.filter((t) => !t.isOverdue);
+  const { data, loading } = useQuery(getTasks);
+  const items = data ?? [];
 
-  const projects = Array.from(new Set(TASKS.map((t) => t.project)));
+  const overdueTasks = items.filter((t) => t.isOverdue);
+  const upcomingTasks = items.filter((t) => !t.isOverdue);
+
+  const projects = Array.from(new Set(items.map((t) => t.project)));
   const statuses: Task['status'][] = ['פתוחה', 'בביצוע', 'ממתינה לאישור', 'הושלמה'];
 
   function filterTasks(tasks: Task[]) {
@@ -215,7 +127,7 @@ export default function Tasks() {
     <div dir="rtl">
       <PageHeader
         title="משימות ואבני דרך"
-        count={TASKS.length}
+        count={items.length}
         actions={
           <Button variant="primary">
             <Plus className="w-4 h-4" />
@@ -224,6 +136,11 @@ export default function Tasks() {
         }
       />
 
+      {loading ? (
+        <div className="p-4 md:p-6">
+          <SkeletonGrid count={4} />
+        </div>
+      ) : (
       <div className="p-4 md:p-6 space-y-6">
         {/* Filters */}
         <Card className="p-4">
@@ -305,6 +222,7 @@ export default function Tasks() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

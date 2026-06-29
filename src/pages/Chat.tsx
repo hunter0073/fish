@@ -2,13 +2,9 @@ import React, { useState } from "react";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Card } from "../components/ui/Card";
 import { Send, Hash, Folder, MessageSquare, Plus } from "lucide-react";
-
-interface Channel {
-  id: string;
-  name: string;
-  type: "channel" | "project";
-  unread?: number;
-}
+import { useQuery } from "@/hooks/useQuery";
+import { Skeleton } from "@/components/ui";
+import { getChannels } from "@/data/channels";
 
 interface Message {
   id: string;
@@ -17,55 +13,25 @@ interface Message {
   timestamp: string;
 }
 
-const GENERAL_CHANNELS: Channel[] = [
-  { id: "general", name: "כללי", type: "channel", unread: 0 },
-];
-
-const PROJECT_CHANNELS: Channel[] = [
-  { id: "p1", name: "אורנשטיין - שיפוץ מסדרון", type: "project" },
-  { id: "p2", name: "לוי - בניית תוספת", type: "project" },
-  { id: "p3", name: "כהן - שיפוץ מטבח", type: "project" },
-  { id: "p4", name: "גולדברג - חידוש חדר אמבטיה", type: "project" },
-  { id: "p5", name: "פרידמן - בניית גדר", type: "project" },
-  { id: "p6", name: "רוזנברג - צביעת דירה", type: "project" },
-  { id: "p7", name: "שפירו - התקנת ריצוף", type: "project" },
-  { id: "p8", name: "ויס - שיפוץ סלון", type: "project" },
-  { id: "p9", name: "מזרחי - בניית מרפסת", type: "project" },
-  { id: "p10", name: "אברמוביץ - שיפוץ כללי", type: "project" },
-  { id: "p11", name: "שטיין - התקנת חלונות", type: "project" },
-  { id: "p12", name: "כץ - שיפוץ חדר שינה", type: "project" },
-  { id: "p13", name: "הורוביץ - בניית מחסן", type: "project" },
-  { id: "p14", name: "בלום - שיפוץ חדר ילדים", type: "project" },
-  { id: "p15", name: "גרינברג - התקנת מזגן", type: "project" },
-  { id: "p16", name: "שוורץ - שיפוץ גג", type: "project" },
-  { id: "p17", name: "קליין - בניית מדרגות", type: "project" },
-  { id: "p18", name: "ברקוביץ - שיפוץ חצר", type: "project" },
-  { id: "p19", name: "זילברמן - חידוש פרקט", type: "project" },
-  { id: "p20", name: "רוט - התקנת תאורה", type: "project" },
-  { id: "p21", name: "אדלר - שיפוץ מרתף", type: "project" },
-  { id: "p22", name: "נוימן - בניית גינה", type: "project" },
-  { id: "p23", name: "פולק - שיפוץ עליית גג", type: "project" },
-  { id: "p24", name: "הרמן - התקנת אינסטלציה", type: "project" },
-  { id: "p25", name: "ברנשטיין - שיפוץ חנות", type: "project" },
-  { id: "p26", name: "זוסמן - בניית קיר גבס", type: "project" },
-  { id: "p27", name: "לנדאו - שיפוץ משרד", type: "project" },
-];
-
 const INITIAL_MESSAGES: Record<string, Message[]> = {
   general: [],
 };
 
 export default function Chat() {
+  const { data, loading } = useQuery(getChannels);
+  const generalChannels = data?.general ?? [];
+  const projectChannels = data?.projects ?? [];
+
   const [selectedChannel, setSelectedChannel] = useState<string>("general");
   const [messageInput, setMessageInput] = useState<string>("");
   const [messages, setMessages] = useState<Record<string, Message[]>>(INITIAL_MESSAGES);
   const [showAllProjects, setShowAllProjects] = useState<boolean>(false);
 
-  const visibleProjects = showAllProjects ? PROJECT_CHANNELS : PROJECT_CHANNELS.slice(0, 10);
+  const visibleProjects = showAllProjects ? projectChannels : projectChannels.slice(0, 10);
 
   const currentChannel =
-    GENERAL_CHANNELS.find((c) => c.id === selectedChannel) ||
-    PROJECT_CHANNELS.find((c) => c.id === selectedChannel);
+    generalChannels.find((c) => c.id === selectedChannel) ||
+    projectChannels.find((c) => c.id === selectedChannel);
 
   const currentMessages = messages[selectedChannel] || [];
 
@@ -160,11 +126,19 @@ export default function Chat() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
+              {loading ? (
+                <div className="flex flex-col gap-2 p-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : (
+                <>
               {/* General Channels Section */}
               <div className="px-4 py-2">
                 <span className="text-caption text-muted-foreground uppercase tracking-wide">ערוצים</span>
               </div>
-              {GENERAL_CHANNELS.map((channel) => (
+              {generalChannels.map((channel) => (
                 <div
                   key={channel.id}
                   onClick={() => setSelectedChannel(channel.id)}
@@ -199,14 +173,16 @@ export default function Chat() {
                 </div>
               ))}
 
-              {!showAllProjects && PROJECT_CHANNELS.length > 10 && (
+              {!showAllProjects && projectChannels.length > 10 && (
                 <div
                   onClick={() => setShowAllProjects(true)}
                   className="flex items-center gap-2 p-2 px-4 rounded-lg mx-2 my-0.5 cursor-pointer transition-colors hover:bg-surface text-muted-foreground"
                 >
                   <Plus className="w-4 h-4 shrink-0" />
-                  <span className="text-body-sm">הצג עוד ({PROJECT_CHANNELS.length - 10})</span>
+                  <span className="text-body-sm">הצג עוד ({projectChannels.length - 10})</span>
                 </div>
+              )}
+                </>
               )}
             </div>
           </div>

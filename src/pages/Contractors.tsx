@@ -4,28 +4,14 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { Plus, Phone, Mail, Star, Edit2, HardHat } from 'lucide-react';
-
-interface Contractor {
-  id: number;
-  company: string;
-  contact: string;
-  specialty: string;
-  reliability: number;
-  overdue: number;
-  active: number;
-  email: string;
-  phone: string;
-  rating: number;
-}
-
-const CONTRACTORS: Contractor[] = [
-  { id: 1, company: 'גנרל קונסטרקט', contact: 'ניר אמיר', specialty: 'קבלנות כללית', reliability: 100, overdue: 0, active: 0, email: 'nir@gconstruct.co.il', phone: '08-4445678', rating: 5 },
-  { id: 2, company: 'אלבר בניה', contact: 'רוני שלום', specialty: 'עבודות תשתית', reliability: 100, overdue: 0, active: 0, email: 'info@albar.co.il', phone: '03-9876543', rating: 5 },
-  { id: 3, company: 'מגדל הנדסה', contact: 'דינה פרץ', specialty: 'הנדסה אזרחית', reliability: 85, overdue: 1, active: 2, email: 'info@migdal-eng.co.il', phone: '03-1234567', rating: 4 },
-  { id: 4, company: 'אאורה נדל"ן ובינוי', contact: 'מיכאל אברמוב', specialty: 'בינוי ופיתוח', reliability: 92, overdue: 0, active: 1, email: 'info@aura.co.il', phone: '03-7654321', rating: 4 },
-];
+import { useQuery } from '@/hooks/useQuery';
+import { SkeletonGrid } from '@/components/ui';
+import { getContractors } from '@/data/contractors';
 
 export default function Contractors() {
+  const { data, loading } = useQuery(getContractors);
+  const items = data ?? [];
+
   return (
     <div dir="rtl" className="flex flex-col gap-4 p-4 md:p-6">
       <PageHeader
@@ -38,8 +24,11 @@ export default function Contractors() {
         }
       />
 
+      {loading ? (
+        <SkeletonGrid count={4} />
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {CONTRACTORS.map((c) => (
+        {items.map((c) => (
           <Card key={c.id} variant="interactive">
             <CardContent className="p-4 flex flex-col gap-3">
               {/* Top row: edit button */}
@@ -109,6 +98,7 @@ export default function Contractors() {
           </Card>
         ))}
       </div>
+      )}
     </div>
   );
 }

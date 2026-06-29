@@ -13,6 +13,9 @@ import {
   ResponsiveContainer,
   LabelList,
 } from 'recharts';
+import { Skeleton } from '@/components/ui';
+import { useQuery } from '@/hooks/useQuery';
+import { getBudgetData } from '@/data/kpi';
 
 const kpiCards = [
   { label: 'משימות באיחור', value: 4, icon: Clock, colorScheme: 'warning' as const, subtext: 'מתוך 8 משימות' },
@@ -25,20 +28,10 @@ const kpiCards = [
   { label: 'תקציב כולל', value: '₪0', icon: DollarSign, colorScheme: 'neutral' as const, subtext: 'כל הפרויקטים' },
 ];
 
-const budgetData = [
-  { name: 'היפוקסיה', budget: 0 },
-  { name: 'קפלון', budget: 0 },
-  { name: 'סילבן אדמס', budget: 0 },
-  { name: 'אורנשטיין', budget: 0 },
-  { name: 'שרייבר', budget: 0 },
-  { name: 'בית כנסת', budget: 0 },
-  { name: 'לוי', budget: 0 },
-  { name: 'כהן', budget: 0 },
-  { name: 'גולדברג', budget: 0 },
-  { name: 'פרידמן', budget: 0 },
-];
-
 export default function KPI() {
+  const { data, loading } = useQuery(getBudgetData);
+  const items = data ?? [];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -64,21 +57,25 @@ export default function KPI() {
           <CardTitle>ניצול תקציב לפי פרויקט (%)</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart
-              data={budgetData}
-              layout="vertical"
-              margin={{ top: 4, right: 32, left: 0, bottom: 4 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-              <YAxis type="category" dataKey="name" width={160} />
-              <Tooltip formatter={(value: number) => [`${value}%`, 'ניצול תקציב']} />
-              <Bar dataKey="budget" fill="hsl(var(--primary))" maxBarSize={20}>
-                <LabelList dataKey="budget" position="right" formatter={(v: number) => `${v}%`} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {loading ? (
+            <Skeleton className="w-full h-[300px]" />
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                data={items}
+                layout="vertical"
+                margin={{ top: 4, right: 32, left: 0, bottom: 4 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                <YAxis type="category" dataKey="name" width={160} />
+                <Tooltip formatter={(value: number) => [`${value}%`, 'ניצול תקציב']} />
+                <Bar dataKey="budget" fill="hsl(var(--primary))" maxBarSize={20}>
+                  <LabelList dataKey="budget" position="right" formatter={(v: number) => `${v}%`} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
     </div>
