@@ -5,7 +5,7 @@ const EXEC = execSync('ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome 2>/
   .toString().trim();
 const BASE = process.env.BASE || 'http://localhost:4173';
 
-const browser = await chromium.launch({ executablePath: EXEC });
+const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const page = await ctx.newPage();
 const jsErrors = [];
@@ -29,11 +29,10 @@ const go = async (path) => {
 // ---- Projects: search filters the list ----
 await check('Projects search filters list', async () => {
   await go('/projects');
-  const cards = page.locator('[class*="grid"] >> text=/#2026-/');
   const before = await page.locator('text=/#2026-/').count();
-  const search = page.locator('input[type="text"], input:not([type])').first();
-  await search.fill('היפוקסיה');
-  await page.waitForTimeout(400);
+  const search = page.getByPlaceholder(/חיפוש/);
+  await search.first().fill('היפוקסיה');
+  await page.waitForTimeout(500);
   const after = await page.locator('text=/#2026-/').count();
   if (!(before > 0 && after < before)) throw new Error(`before=${before} after=${after}`);
 });
