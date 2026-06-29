@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import BottomNav from './BottomNav';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,11 +23,14 @@ const Layout: React.FC = () => {
       <div className="lg:mr-64 flex flex-col min-h-screen">
         <Header onMenuToggle={() => setSidebarOpen(true)} />
 
-        {/* Page content below header */}
-        <main className="flex-1 mt-14 p-4 md:p-6">
+        {/* Page content below header — extra bottom padding on mobile for the tab bar */}
+        <main className="flex-1 mt-14 p-4 md:p-6 pb-20 lg:pb-6">
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile bottom tab bar */}
+      <BottomNav />
     </div>
   );
 };

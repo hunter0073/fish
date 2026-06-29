@@ -28,6 +28,7 @@
     "@types/react-dom": "latest",
     "@vitejs/plugin-react": "latest",
     "autoprefixer": "latest",
+    "playwright-core": "^1.61.1",
     "postcss": "latest",
     "tailwindcss": "^3",
     "typescript": "latest",
