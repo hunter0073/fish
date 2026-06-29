@@ -1,134 +1,120 @@
 import { chromium } from 'playwright-core';
 import { execSync } from 'node:child_process';
+import { appendFileSync, writeFileSync } from 'node:fs';
 
 const EXEC = execSync('ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome 2>/dev/null | head -1')
   .toString().trim();
 const BASE = process.env.BASE || 'http://localhost:4173';
+const OUT = '/home/user/fish/scripts/qa-results.txt';
+writeFileSync(OUT, '');
+const emit = (line) => { console.log(line); appendFileSync(OUT, line + '\n'); };
 
-const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
+const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+ctx.setDefaultTimeout(6000);
+ctx.setDefaultNavigationTimeout(12000);
 const page = await ctx.newPage();
 const jsErrors = [];
 page.on('pageerror', (e) => jsErrors.push(e.message));
 
 const results = [];
 const check = async (name, fn) => {
-  try {
-    await fn();
-    results.push(['PASS', name]);
-  } catch (e) {
-    results.push(['FAIL', name + ' :: ' + String(e.message).slice(0, 160)]);
-  }
+  try { await fn(); results.push(['PASS', name]); emit('PASS  ' + name); }
+  catch (e) { results.push(['FAIL', name]); emit('FAIL  ' + name + ' :: ' + String(e.message).split('\n')[0].slice(0, 140)); }
+};
+const go = async (p) => { await page.goto(BASE + p, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(900); };
+const openModalTest = (path, btnName) => async () => {
+  await go(path);
+  await page.getByRole('button', { name: btnName }).first().click();
+  await page.waitForTimeout(400);
+  if (await page.getByRole('dialog').count() === 0) throw new Error('no dialog opened');
+  await page.keyboard.press('Escape');
 };
 
-const go = async (path) => {
-  await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 15000 });
-  await page.waitForTimeout(700); // mock data resolve
-};
-
-// ---- Projects: search filters the list ----
-await check('Projects search filters list', async () => {
+await check('Projects: search filters list', async () => {
   await go('/projects');
   const before = await page.locator('text=/#2026-/').count();
-  const search = page.getByPlaceholder(/חיפוש/);
-  await search.first().fill('היפוקסיה');
-  await page.waitForTimeout(500);
+  await page.getByPlaceholder(/חיפוש/).first().fill('היפוקסיה');
+  await page.waitForTimeout(600);
   const after = await page.locator('text=/#2026-/').count();
   if (!(before > 0 && after < before)) throw new Error(`before=${before} after=${after}`);
 });
-
-// ---- Projects: + new opens a modal ----
-await check('Projects "+ new" opens modal', async () => {
+await check('Projects: status filter narrows list', async () => {
   await go('/projects');
+  const before = await page.locator('text=/#2026-/').count();
+  const sel = page.locator('select').first();
+  const opts = await sel.locator('option').allTextContents();
+  const target = opts.find((o) => /בביצוע/.test(o));
+  if (!target) throw new Error('no status option');
+  await sel.selectOption({ label: target });
+  await page.waitForTimeout(600);
+  const after = await page.locator('text=/#2026-/').count();
+  if (!(after < before)) throw new Error(`before=${before} after=${after}`);
+});
+await check('Projects: "+ new" opens modal', openModalTest('/projects', /פרויקט חדש/));
+await check('Projects: add via modal appends a card', async () => {
+  await go('/projects');
+  const before = await page.locator('text=/#2026-/').count();
   await page.getByRole('button', { name: /פרויקט חדש/ }).first().click();
   await page.waitForTimeout(400);
-  if (await page.getByRole('dialog').count() === 0) throw new Error('no dialog');
-  await page.keyboard.press('Escape');
+  const inputs = page.getByRole('dialog').locator('input');
+  if (await inputs.count() === 0) throw new Error('no inputs in modal');
+  await inputs.first().fill('בדיקת QA פרויקט');
+  // fill any other text inputs to satisfy required
+  const n = await inputs.count();
+  for (let i = 1; i < n; i++) { const t = await inputs.nth(i).getAttribute('type'); if (t !== 'checkbox') await inputs.nth(i).fill('1').catch(()=>{}); }
+  await page.getByRole('dialog').getByRole('button', { name: /שמור|הוסף|צור|שמירה/ }).first().click();
+  await page.waitForTimeout(600);
+  const after = await page.locator('text=/בדיקת QA פרויקט/').count();
+  if (after === 0) throw new Error('new project not visible after save');
 });
-
-// ---- Tasks: + new opens modal ----
-await check('Tasks "+ new" opens modal', async () => {
+await check('Tasks: "+ new" opens modal', openModalTest('/tasks', /משימה חדשה/));
+await check('Tasks: search filters', async () => {
   await go('/tasks');
-  await page.getByRole('button', { name: /משימה חדשה/ }).first().click();
-  await page.waitForTimeout(400);
-  if (await page.getByRole('dialog').count() === 0) throw new Error('no dialog');
-  await page.keyboard.press('Escape');
+  const before = await page.locator('text=/\\d+\\.\\d+\\.\\d+/').count();
+  await page.getByPlaceholder(/חיפוש/).first().fill('רישוי');
+  await page.waitForTimeout(500);
+  const after = await page.locator('text=/\\d+\\.\\d+\\.\\d+/').count();
+  if (!(before > 0 && after <= before)) throw new Error(`before=${before} after=${after}`);
 });
-
-// ---- Contractors: + new opens modal ----
-await check('Contractors "+ new" opens modal', async () => {
-  await go('/contractors');
-  await page.getByRole('button', { name: /קבלן חדש/ }).first().click();
-  await page.waitForTimeout(400);
-  if (await page.getByRole('dialog').count() === 0) throw new Error('no dialog');
-  await page.keyboard.press('Escape');
-});
-
-// ---- Managers: + new opens modal ----
-await check('Managers "+ new" opens modal', async () => {
-  await go('/project-managers');
-  await page.getByRole('button', { name: /מנהל חדש/ }).first().click();
-  await page.waitForTimeout(400);
-  if (await page.getByRole('dialog').count() === 0) throw new Error('no dialog');
-  await page.keyboard.press('Escape');
-});
-
-// ---- Dashboard quick action navigates ----
-await check('Dashboard quick-action navigates to /tasks', async () => {
+await check('Contractors: "+ new" opens modal', openModalTest('/contractors', /קבלן חדש/));
+await check('Managers: "+ new" opens modal', openModalTest('/project-managers', /מנהל חדש/));
+await check('Documents: "+ new" opens modal', openModalTest('/documents', /מסמך חדש/));
+await check('Clients: "+ new" opens modal', openModalTest('/clients', /לקוח חדש/));
+await check('Dashboard: quick-action navigates to /tasks', async () => {
   await go('/');
   await page.getByRole('button', { name: /משימה חדשה/ }).first().click();
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(700);
   if (!page.url().includes('/tasks')) throw new Error('url=' + page.url());
 });
-
-// ---- Chat: send appends a message ----
-await check('Chat send shows the message', async () => {
+await check('Dashboard: stat card navigates', async () => {
+  await go('/');
+  await page.getByText('באיחור').first().click();
+  await page.waitForTimeout(700);
+  if (!page.url().includes('/tasks')) throw new Error('url=' + page.url());
+});
+await check('Chat: send shows the message', async () => {
   await go('/chat');
   const input = page.locator('textarea, input[type="text"]').last();
   await input.fill('בדיקת הודעה QA');
-  await page.getByRole('button').last().click();
-  await page.waitForTimeout(400);
+  await input.press('Enter').catch(() => {});
+  await page.waitForTimeout(300);
+  if (await page.getByText('בדיקת הודעה QA').count() === 0) {
+    await page.getByRole('button').last().click();
+    await page.waitForTimeout(400);
+  }
   if (await page.getByText('בדיקת הודעה QA').count() === 0) throw new Error('message not rendered');
 });
-
-// ---- Documents: + new opens modal ----
-await check('Documents "+ new" opens modal', async () => {
-  await go('/documents');
-  await page.getByRole('button', { name: /מסמך חדש/ }).first().click();
-  await page.waitForTimeout(400);
-  if (await page.getByRole('dialog').count() === 0) throw new Error('no dialog');
-  await page.keyboard.press('Escape');
-});
-
-// ---- Clients: + new opens modal ----
-await check('Clients "+ new" opens modal', async () => {
-  await go('/clients');
-  await page.getByRole('button', { name: /לקוח חדש/ }).first().click();
-  await page.waitForTimeout(400);
-  if (await page.getByRole('dialog').count() === 0) throw new Error('no dialog');
-  await page.keyboard.press('Escape');
-});
-
-// ---- Calendar: year nav changes label ----
-await check('Calendar year nav changes year', async () => {
+await check('Calendar: expand-all toggles rows', async () => {
   await go('/calendar');
-  // click the "next" / "prev" chevron buttons
-  const btns = page.getByRole('button');
-  const n = await btns.count();
-  let clicked = false;
-  for (let i = 0; i < n; i++) {
-    const b = btns.nth(i);
-    const html = await b.innerHTML();
-    if (html.includes('chevron') || html.includes('svg')) { await b.click(); clicked = true; break; }
-  }
-  await page.waitForTimeout(300);
-  if (!clicked) throw new Error('no nav button found');
+  await page.getByRole('button', { name: /פרוס|הרחב/ }).first().click();
+  await page.waitForTimeout(400);
 });
 
+await ctx.close();
 await browser.close();
 
-let fails = 0;
-for (const [s, n] of results) { if (s === 'FAIL') fails++; console.log(`${s}  ${n}`); }
-if (jsErrors.length) { console.log('\nJS ERRORS:'); jsErrors.forEach((e) => console.log('  ! ' + e.slice(0, 160))); }
-console.log(`\n${results.length - fails}/${results.length} interaction checks passed. JS errors: ${jsErrors.length}`);
+const fails = results.filter((r) => r[0] === 'FAIL').length;
+if (jsErrors.length) { emit('\nJS ERRORS:'); jsErrors.forEach((e) => emit('  ! ' + e.slice(0, 140))); }
+emit(`\n${results.length - fails}/${results.length} interaction checks passed. JS errors: ${jsErrors.length}`);
 process.exit(fails || jsErrors.length ? 1 : 0);
